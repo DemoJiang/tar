@@ -58,7 +58,7 @@
 #define CONTIGUOUS      '7'
 
 // tar entry metadata structure (singly-linked list)
-struct tar_t {
+typedef struct tar_t {
     char original_name[100];                // original filenme; only availible when writing into a tar
     unsigned int begin;                     // location of data in file (including metadata)
     union {
@@ -94,7 +94,7 @@ struct tar_t {
     };
 
     struct tar_t * next;
-};
+}tar_t;
 
 // core functions //////////////////////////////////////////////////////////////
 // read a tar file
