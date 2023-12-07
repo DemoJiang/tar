@@ -1058,6 +1058,9 @@ int tar_ls(FILE * f, struct tar_t * archive, const size_t filecount, const char 
 }
 
 void tar_free(struct tar_t * archive) {
+    if (archive == NULL) {
+        return;
+    }
     struct tar_t * next = archive-> next;
     free(archive);
     archive = NULL;
