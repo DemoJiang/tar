@@ -16,6 +16,7 @@
 #ifndef __TAR__
 #define __TAR__
 
+#include <string>
 #ifndef _DEFAULT_SOURCE
 #define _DEFAULT_SOURCE
 #endif
@@ -161,6 +162,8 @@ int write_end_data(const int fd, int size, const char verbosity);
 // returns index + 1 if match is found
 int check_match(struct tar_t * entry, const size_t filecount, const char * files[]);
 // /////////////////////////////////////////////////////////////////////////////
+
+void set_rootPath(std::string Path);
 
 int Tar(char * filename, char** path, int fileCount);
 

@@ -15,6 +15,12 @@
 
 #include "tar.h"
 
+#include "hilog/log.h"
+#define LOG_DOMAIN 0x0201
+
+#include <string>
+#include <regex>
+
 #define MIN(x, y)(((x) <(y)) ?(x) :(y))
 #define MAX(x, y)(((x) >(y)) ?(x) :(y))
 // only print in verbose mode
@@ -51,6 +57,16 @@ static int iszeroed(char * buf, size_t size);
 // make directory recursively
 static int recursive_mkdir(const char * dir, const unsigned int mode, const char verbosity);
 
+// 入参解压路径
+const char ** unTarPath;
+// 文件操作的根目录
+std::string rootPath;
+std::string customUnTarPath;
+
+std::string replaceSubstringRegex(const std::string &str, const std::string &from, const std::string &to) {
+    std::regex pattern(from);
+    return std::regex_replace(str, pattern, to);
+}
 
 // 打印输入的元数据
 int print_entry_metadata(FILE * f, struct tar_t * entry) {
@@ -347,17 +363,25 @@ int ls_entry(FILE * f, struct tar_t * entry, const size_t filecount, const char 
 // 提取条目
 int extract_entry(const int fd, struct tar_t * entry, const char verbosity) {
     V_PRINT(stdout, "%s", entry-> name);
+    
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 entry.name: %{public}s", entry->name, 0);
+    std::string str(entry->name);
 
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 rootPath: %{public}s", rootPath.c_str(),0);
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 unTarPath: %{public}s",customUnTarPath.c_str(), 0);
+
+    std::string newStr = replaceSubstringRegex(str, rootPath, customUnTarPath);
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 newStr: %{public}s", newStr.c_str(), 0);
     if ((entry-> type == REGULAR) || (entry-> type == NORMAL) || (entry-> type == CONTIGUOUS)) {
         // create intermediate directories
-        size_t len = strlen(entry-> name);
+        size_t len = strlen(newStr.c_str());
         if (!len)
         {
             ERROR("Attempted to extract entry with empty name");
         }
 
         char * path = (char*)calloc(len + 1, sizeof(char));
-        strncpy(path, entry-> name, len);
+        strncpy(path, newStr.c_str(), len);
 
         // remove file from path
         while (--len && (path[len] != '/')) ;
@@ -372,9 +396,9 @@ int extract_entry(const int fd, struct tar_t * entry, const char verbosity) {
 
         // create file
         const unsigned int size = oct2uint(entry-> size, 11);
-        int f = open(entry-> name, O_WRONLY | O_CREAT | O_TRUNC, oct2uint(entry-> mode, 7) & 0777);
+        int f = open(newStr.c_str(), O_WRONLY | O_CREAT | O_TRUNC, oct2uint(entry-> mode, 7) & 0777);
         if (f < 0) {
-            RC_ERROR("Unable to open file %s: %s", entry-> name, strerror(rc));
+            RC_ERROR("Unable to open file %s: %s", newStr.c_str(), strerror(rc));
         }
 
         // move archive pointer to data location
@@ -392,7 +416,7 @@ int extract_entry(const int fd, struct tar_t * entry, const char verbosity) {
             }
 
             if (write(f, buf, r) != r) {
-                EXIST_ERROR("Unable to write to %s: %s", entry-> name, strerror(rc));
+                EXIST_ERROR("Unable to write to %s: %s", newStr.c_str(), strerror(rc));
             }
 
             got += r;
@@ -426,7 +450,7 @@ int extract_entry(const int fd, struct tar_t * entry, const char verbosity) {
         }
     }
     else if (entry-> type == DIRECTORY) {
-        if (recursive_mkdir(entry-> name, oct2uint(entry-> mode, 7) & 0777, verbosity) < 0) {
+        if (recursive_mkdir(newStr.c_str(), oct2uint(entry-> mode, 7) & 0777, verbosity) < 0) {
             EXIST_ERROR("Unable to create directory %s: %s", entry-> name, strerror(rc));
         }
     }
@@ -999,6 +1023,8 @@ int tar_update(const int fd, struct tar_t ** archive, const size_t filecount, co
 int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, const char * files[], const char verbosity) {
     int ret = 0;
     // extract entries with given names
+
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "依赖库解压 tar_extract: %{public}d", filecount, 0);
     if (filecount) {
         if (!files) {
             ERROR("Received non-zero file count but got NULL file list");
@@ -1022,13 +1048,19 @@ int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, co
     }
     // extract all
     else {
+        if(files){
+            std::string path(files[0]);
+            customUnTarPath = path.erase(0, 1);
+        }
         // move offset to beginning
         if (lseek(fd, 0, SEEK_SET) == (off_t) (-1)) {
             RC_ERROR("Unable to seek file: %s", strerror(rc));
         }
-
+        OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "依赖库解压 tar_extract filecount false--------------", 0);
         // extract each entry
         while (archive) {
+            OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG,
+                         "依赖库解压 tar_extract while archive true--------------", 0);
             if (extract_entry(fd, archive, verbosity) < 0) {
                 ret = -1;
             }
@@ -1187,6 +1219,8 @@ static int TarCommand(char command, char* fname, char * path[], int fileCount) {
             rc = tar_update(fd, &archive, fileCount, files, verbosity);
             break;
             case 'x':
+            OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "依赖库接收的解压参数2 : %{public}s", files[0], 0);
+            unTarPath = files;
             rc = tar_extract(fd, archive, fileCount, files, verbosity);
             break;
             default:
@@ -1202,6 +1236,10 @@ static int TarCommand(char command, char* fname, char * path[], int fileCount) {
     tar_free(archive);
     close(fd); // don't bother checking for fd < 0
     return rc;
+}
+
+void set_rootPath(std::string Path) { 
+    rootPath = Path.erase(0, 1);
 }
 
 int Tar(char * filename, char** path, int fileCount) {
