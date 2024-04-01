@@ -17,6 +17,7 @@
 
 #include "hilog/log.h"
 #define LOG_DOMAIN 0x0201
+#define LOG_TAG "tar----------->"
 
 #include <string>
 #include <regex>
@@ -194,9 +195,13 @@ int format_tar_data(struct tar_t * entry, const char * filename, const char verb
     }
 
     // start putting in new data (all fields are NULL terminated ASCII strings)
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "format_tar_data entry-> name: %{public}s", filename, 0);
+    std::string str(filename);
+    const char *pathName = replaceSubstringRegex(str, "/" + rootPath, "").c_str();
     memset(entry, 0, sizeof(struct tar_t));
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "format_tar_data jk: %{public}s", pathName, 0);
     strncpy(entry-> original_name, filename, 100);
-    strncpy(entry-> name, filename + move, 100);
+    strncpy(entry-> name, pathName + move, 100);
     snprintf(entry-> mode, sizeof(entry-> mode), "%07o", st.st_mode & 0777);
     snprintf(entry-> uid, sizeof(entry-> uid), "%07o", st.st_uid);
     snprintf(entry-> gid, sizeof(entry-> gid), "%07o", st.st_gid);
@@ -369,8 +374,8 @@ int extract_entry(const int fd, struct tar_t * entry, const char verbosity) {
 
     OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 rootPath: %{public}s", rootPath.c_str(),0);
     OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 unTarPath: %{public}s",customUnTarPath.c_str(), 0);
-
-    std::string newStr = replaceSubstringRegex(str, rootPath, customUnTarPath);
+    
+    std::string newStr = customUnTarPath + "/" + str;
     OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 newStr: %{public}s", newStr.c_str(), 0);
     if ((entry-> type == REGULAR) || (entry-> type == NORMAL) || (entry-> type == CONTIGUOUS)) {
         // create intermediate directories
