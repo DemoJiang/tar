@@ -15,10 +15,6 @@
 
 #include "tar.h"
 
-#include "hilog/log.h"
-#define LOG_DOMAIN 0x0201
-#define LOG_TAG "tar----------->"
-
 #include <string>
 #include <regex>
 
@@ -195,11 +191,9 @@ int format_tar_data(struct tar_t * entry, const char * filename, const char verb
     }
 
     // start putting in new data (all fields are NULL terminated ASCII strings)
-    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "format_tar_data entry-> name: %{public}s", filename, 0);
     std::string str(filename);
     const char *pathName = replaceSubstringRegex(str, "/" + rootPath, "").c_str();
     memset(entry, 0, sizeof(struct tar_t));
-    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "format_tar_data jk: %{public}s", pathName, 0);
     strncpy(entry-> original_name, filename, 100);
     strncpy(entry-> name, pathName + move, 100);
     snprintf(entry-> mode, sizeof(entry-> mode), "%07o", st.st_mode & 0777);
@@ -369,14 +363,9 @@ int ls_entry(FILE * f, struct tar_t * entry, const size_t filecount, const char 
 int extract_entry(const int fd, struct tar_t * entry, const char verbosity) {
     V_PRINT(stdout, "%s", entry-> name);
     
-    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 entry.name: %{public}s", entry->name, 0);
     std::string str(entry->name);
-
-    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 rootPath: %{public}s", rootPath.c_str(),0);
-    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 unTarPath: %{public}s",customUnTarPath.c_str(), 0);
     
     std::string newStr = customUnTarPath + "/" + str;
-    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "解压条目 newStr: %{public}s", newStr.c_str(), 0);
     if ((entry-> type == REGULAR) || (entry-> type == NORMAL) || (entry-> type == CONTIGUOUS)) {
         // create intermediate directories
         size_t len = strlen(newStr.c_str());
@@ -1029,7 +1018,6 @@ int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, co
     int ret = 0;
     // extract entries with given names
 
-    OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "依赖库解压 tar_extract: %{public}d", filecount, 0);
     if (filecount) {
         if (!files) {
             ERROR("Received non-zero file count but got NULL file list");
@@ -1061,11 +1049,8 @@ int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, co
         if (lseek(fd, 0, SEEK_SET) == (off_t) (-1)) {
             RC_ERROR("Unable to seek file: %s", strerror(rc));
         }
-        OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "依赖库解压 tar_extract filecount false--------------", 0);
         // extract each entry
         while (archive) {
-            OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG,
-                         "依赖库解压 tar_extract while archive true--------------", 0);
             if (extract_entry(fd, archive, verbosity) < 0) {
                 ret = -1;
             }
@@ -1224,7 +1209,6 @@ static int TarCommand(char command, char* fname, char * path[], int fileCount) {
             rc = tar_update(fd, &archive, fileCount, files, verbosity);
             break;
             case 'x':
-            OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, LOG_TAG, "依赖库接收的解压参数2 : %{public}s", files[0], 0);
             unTarPath = files;
             rc = tar_extract(fd, archive, fileCount, files, verbosity);
             break;
