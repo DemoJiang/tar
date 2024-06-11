@@ -58,7 +58,6 @@ static int recursive_mkdir(const char * dir, const unsigned int mode, const char
 const char ** unTarPath;
 // 文件操作的根目录
 std::string rootPath;
-std::string customUnTarPath;
 
 std::string replaceSubstringRegex(const std::string &str, const std::string &from, const std::string &to) {
     std::regex pattern(from);
@@ -360,7 +359,7 @@ int ls_entry(FILE * f, struct tar_t * entry, const size_t filecount, const char 
 }
 
 // 提取条目
-int extract_entry(const int fd, struct tar_t * entry, const char verbosity) {
+int extract_entry(const int fd, struct tar_t * entry, const char verbosity, std::string customUnTarPath) {
     V_PRINT(stdout, "%s", entry-> name);
     
     std::string str(entry->name);
@@ -1014,10 +1013,10 @@ int tar_update(const int fd, struct tar_t ** archive, const size_t filecount, co
     return all ? 0 : -1;
 }
 
-int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, const char * files[], const char verbosity) {
+int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, const char * files[], const char verbosity, std::string customUnTarPath) {
     int ret = 0;
     // extract entries with given names
-
+    std::string customUnTarPath = "";
     if (filecount) {
         if (!files) {
             ERROR("Received non-zero file count but got NULL file list");
@@ -1030,7 +1029,7 @@ int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, co
                         RC_ERROR("Unable to seek file: %s", strerror(rc));
                     }
 
-                    if (extract_entry(fd, archive, verbosity) < 0) {
+                    if (extract_entry(fd, archive, verbosity, customUnTarPath) < 0) {
                         ret = -1;
                     }
                     break;
@@ -1051,7 +1050,7 @@ int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, co
         }
         // extract each entry
         while (archive) {
-            if (extract_entry(fd, archive, verbosity) < 0) {
+            if (extract_entry(fd, archive, verbosity, customUnTarPath) < 0) {
                 ret = -1;
             }
             archive = archive-> next;
