@@ -150,7 +150,7 @@ int ls_entry(FILE * f, struct tar_t * archive, const size_t filecount, const cha
 
 // extracts a single entry
 // expects file descriptor offset to already be set to correct location
-int extract_entry(const int fd, struct tar_t * entry, const char verbosity);
+int extract_entry(const int fd, struct tar_t * entry, const char verbosity, std::string customUnTarPath);
 
 // write entries to a tar file
 int write_entries(const int fd, struct tar_t ** archive, struct tar_t ** head, const size_t filecount, const char * files[], int * offset, const char verbosity);
