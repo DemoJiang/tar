@@ -1013,7 +1013,7 @@ int tar_update(const int fd, struct tar_t ** archive, const size_t filecount, co
     return all ? 0 : -1;
 }
 
-int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, const char * files[], const char verbosity, std::string customUnTarPath) {
+int tar_extract(const int fd, struct tar_t * archive, const size_t filecount, const char * files[], const char verbosity) {
     int ret = 0;
     // extract entries with given names
     std::string customUnTarPath = "";
